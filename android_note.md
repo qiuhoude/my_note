@@ -1,6 +1,6 @@
 <!-- MarkdownTOC -->
 
-- [ndroid项目的目录结构](#ndroid项目的目录结构)
+- [Android项目的目录结构](#android项目的目录结构)
     - [. Eclipse的目录结构](#-eclipse的目录结构)
     - [. Android studio的目录结构](#-android-studio的目录结构)
 - [DDMS](#ddms)
@@ -46,8 +46,8 @@
 
 
 
-<a name="ndroid项目的目录结构"></a>
-#Android项目的目录结构
+<a name="android项目的目录结构"></a>
+# Android项目的目录结构
 <a name="-eclipse的目录结构"></a>
 ##1. Eclipse的目录结构
 * Activity：应用被打开时显示的界面
