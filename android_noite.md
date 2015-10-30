@@ -1,5 +1,4 @@
-[TOC]
-
+<!--  -->
 #Android项目的目录结构
 ##1. Eclipse的目录结构
 * Activity：应用被打开时显示的界面
