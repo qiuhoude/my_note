@@ -618,9 +618,12 @@ Student.prototype.isPrototypeOf(xiaoming);//true 判断某个proptotype对象和
 xiaoming.hasOwnProperty("name");//true  每个实例对象都有一个hasOwnProperty()方法，用来判断某一个属性到底是本地属性，还是继承自prototype对象的属性
 "name" in xiaoming; //true in运算符可以用来判断，某个实例是否含有某个属性，不管是不是本地属性,还可以用于遍历某个对象的所有属性
 ```
-[继承详解](http://www.ruanyifeng.com/blog/2010/05/object-oriented_javascript_inheritance.html)
+
 <a name="继承"></a>
 ##### 继承 
+<a name="构造函数绑定"></a>
+[继承详解](http://www.ruanyifeng.com/blog/2010/05/object-oriented_javascript_inheritance.html)
+
 <a name="构造函数绑定"></a>
 ###### 构造函数绑定
 第一种方法也是最简单的方法，使用`call`或`apply`方法，将父对象的构造函数绑定在子对象上，即在子对象构造函数中加一行
