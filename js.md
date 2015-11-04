@@ -17,15 +17,20 @@
 		- [闭包](#闭包)
 		- [箭头函数](#箭头函数)
 		- [generator](#generator)
-			- [标准对象](#标准对象)
-				- [Date](#date)
-				- [RegExp](#regexp)
-				- [JSON](#json)
-			- [面向对象](#面向对象)
-				- [创建对象](#创建对象)
-				- [继承](#继承)
-					- [构造函数绑定](#构造函数绑定)
-					- [prototype模式](#prototype模式)
+	- [标准对象](#标准对象)
+		- [Date](#date)
+		- [RegExp](#regexp)
+		- [JSON](#json)
+	- [面向对象](#面向对象)
+		- [创建对象](#创建对象)
+		- [继承](#继承)
+			- [构造函数绑定](#构造函数绑定)
+			- [利用空对象作为中介](#利用空对象作为中介)
+			- [拷贝继承,用于非构造函数创建的对象](#拷贝继承用于非构造函数创建的对象)
+	- [浏览器](#浏览器)
+		- [浏览器对象](#浏览器对象)
+		- [Promise,可实现异步](#promise可实现异步)
+	- [jQuery](#jquery)
 
 <!-- /MarkdownTOC -->
 
@@ -441,8 +446,9 @@ for(var x of fib(5)){
 generator还有另一个巨大的好处，就是把异步回调代码变成“同步”代码，比如 ajax可以使用。
 
 
+
 <a name="标准对象"></a>
-#### 标准对象
+## 标准对象
 
 - 有这么几条规则需要遵守：
 	- 不要使用`new Number()`、`new Boolean()`、`new String()`创建包装对象；
@@ -552,7 +558,7 @@ re.exec(s); // null，直到结束仍没有匹配到
 
 
 <a name="面向对象"></a>
-#### 面向对象
+## 面向对象
 >JavaScript不区分类和实例的概念，而是通过原型（prototype）来实现面向对象编程。
 Object.create()方法可以传入一个原型对象，并创建一个基于该原型的新对象，但是新对象什么属性都没有;不要直接用obj.__proto__去改变一个对象的原型	
 
@@ -643,5 +649,168 @@ alert(cat1.species); // 动物
 ```
 
 
-<a name="prototype模式"></a>
-###### prototype模式
+<a name="利用空对象作为中介"></a>
+###### 利用空对象作为中介
+
+```javascript
+function extend(Child, Parent) {
+	var F = function(){}; //F是空对象，所以几乎不占内存
+	F.prototype = Parent.prototype;  
+	Child.prototype = new F();	//利用中间对象，修改Child的prototype对象，就不会影响到Parent的prototype对象
+	Child.prototype.constructor = Child;
+	Child.suber = Parent.prototype; 
+}
+```
+
+<a name="拷贝继承用于非构造函数创建的对象"></a>
+###### 拷贝继承,用于非构造函数创建的对象
+
+```javascript
+//浅拷贝，把父对象的属性，全部拷贝给子对象，也能实现继承，
+//但是只是拷贝基本类型的数据，数组类型拷贝不了，只拿到数组的内存地址,
+//所以子类的数组属性发生改变父类也会跟着改变
+//早起的jQuery是这么实现继承的
+function extendCopy(Child, Parent) {
+	var p = Parent.prototype;
+	var c = Child.prototype;
+	for (var i in p) {
+		c[i] = p[i];
+	}
+	c.uber = p;
+}
+
+//深拷贝
+//能够实现真正意义上的数组和对象的拷贝
+
+function deepCopy(Child,Parent){
+	var c = Child || {};
+	var p = Parent.prototype;
+	for (var i in p ){
+		if(typeof p[i] === 'object'){
+			//如果是对象类型或数组类型就进行递归
+			c[i] = (p[i].constructor === Array)?[]:{};
+			deepCopy(c[i],p[i]);
+		}else{
+			c[i] = p[i];
+		}
+	}
+	return c;
+}
+```
+
+<a name="浏览器"></a>
+## 浏览器
+
+<a name="浏览器对象"></a>
+#### 浏览器对象
+
+- `window`对象  `window.innerWidth`,`window.innerHeight`内部宽高是指除去菜单栏、工具栏、边框等占位元素后，用于显示网页的净宽高 ,外宽高属性`outerWidth`,`outerHeight`可以获取浏览器窗口的整个宽高
+
+- `navigator`对象,navigator的信息可以很容易地被用户修改
+	- navigator.appName：浏览器名称；
+	- navigator.appVersion：浏览器版本；
+	- navigator.language：浏览器设置的语言；
+	- navigator.platform：操作系统类型；
+	- navigator.userAgent：浏览器设定的User-Agent字符串。
+	
+- `screen` 对象表示屏幕的信息，常用的属性有
+	- screen.width：屏幕宽度，以像素为单位；
+	- screen.height：屏幕高度，以像素为单位；
+	- screen.colorDepth：返回颜色位数，如8、16、24。
+	
+- `location` 对象表示当前页面的URL信息
+
+```javascript
+location.href; //完整的url http://www.example.com:8080/path/index.html?a=1&b=2#TOP
+location.protocol; // 'http'
+location.host; // 'www.example.com'
+location.port; // '8080'
+location.pathname; // '/path/index.html'
+location.search; // '?a=1&b=2'
+location.hash; // 'TOP'
+location.assign('http://www.baidu.com');//要加载一个新页面
+location.reload() //重新加载当前页
+```
+- document对象表示当前页面。由于HTML在浏览器中以DOM形式表示为树形结构，document对象就是整个DOM树的根节点。
+	-  document的title属性是从HTML文档中的<title>xxx</title>读取的，但是可以动态改变 `document.title = '努力学习!';`
+	-  供的`getElementById()`和`getElementsByTagName()`，`document.getElementsByClassName()`
+	-  `document.cookie`读取到当前页面的Cookie
+	-  `document.querySelector()`或`document.querySelectorAll()`来获取节点，需要了解selector语法
+	-  `innerText`不返回隐藏元素的文本，而`textContent`返回所有文本，`innerHTML`可以修改dom节点
+	-  使用`parentElement.appendChild(newElement)`，把一个子节点添加到父节点的最后一个子节点
+	-  使用`parentElement.insertBefore(newElement, referenceElement);`，子节点会插入到`referenceElement`之前
+	-  调用父节点的`parentElement.removeChild(childElement)`把自己删掉
+- `history` 对象保存了浏览器的历史记录，JavaScript可以调用history对象的`back()`或`forward ()`，相当于用户点击了浏览器的“后退”或“前进”按钮，一般都不用
+
+
+<a name="promise可实现异步"></a>
+#### Promise,可实现异步
+
+- `setTimeout(function,time,arguments)`定时器，`setInterval("function",time)`可重复执行,`clearTimeout(对象)`清除已设置的setTimeout对象,`clearInterval(对象)`清除已设置的setInterval对象
+
+```javascript
+// ajax函数将返回Promise对象:
+function ajax(method, url, data) {
+    var request = new XMLHttpRequest();
+    return new Promise(function (resolve, reject) {
+        request.onreadystatechange = function () {
+            if (request.readyState === 4) {
+                if (request.status === 200) {
+                    resolve(request.responseText);
+                } else {
+                    reject(request.status);
+                }
+            }
+        };
+        request.open(method, url);
+        request.send(data);
+    });
+}
+
+var p = ajax('GET', '/api/categories');
+
+p.then(function (text) { // 如果AJAX成功，获得响应内容
+	console.info(text);
+}).catch(function (status) { // 如果AJAX失败，获得响应代码
+    console.info('ERROR: ' + status);
+});
+``` 
+- `Promise`还可以并行执行异步任务
+> 试想一个页面聊天系统，我们需要从两个不同的URL分别获得用户的个人信息和好友列表，这两个任务是可以并行执行的，用`Promise.all()`
+
+```javascript
+var p1 = new Promise(function (resolve, reject) {
+    setTimeout(resolve, 500, 'P1');
+});
+var p2 = new Promise(function (resolve, reject) {
+    setTimeout(resolve, 600, 'P2');
+});
+// 同时执行p1和p2，并在它们都完成后执行then:
+Promise.all([p1, p2]).then(function (results) {
+    console.log(results); // 获得一个Array: ['P1', 'P2']
+});
+```
+
+- `Promise.race()` 多个异步任务是为了容错
+
+```javascript
+var p1 = new Promise(function (resolve, reject) {
+    setTimeout(resolve, 500, 'P1');
+});
+var p2 = new Promise(function (resolve, reject) {
+    setTimeout(resolve, 600, 'P2');
+});
+Promise.race([p1, p2]).then(function (result) {
+    console.log(result); // 'P1'
+});
+//由于p1执行较快，Promise的then()将获得结果'P1'。p2仍在继续执行，但执行结果将被丢弃
+```
+- 组合使用Promise，就可以把很多异步任务以并行和串行的方式组合起来执行
+
+
+<a name="jquery"></a>
+## jQuery
+
+[jQuery官方下载地址](http://jquery.com/download/) 
+> 原理是`jQuery`在占用`$`之前，先在内部保存了原来的`$`,调用`jQuery.noConflict()`时会把原来保存的变量还原
+
