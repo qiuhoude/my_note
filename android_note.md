@@ -854,7 +854,7 @@ unregisterReceiver(receiver);
 	* 可以调用服务里面的方法，而startService办不到
 	* IBinder就是中间人接口，一般继承子类Binder
 
- ```java
+```java
  //activity中的代码
  //绑定服务
  private IPlayService playService;
@@ -903,14 +903,21 @@ unregisterReceiver(receiver);
 	public void replay();
 	public void stop();
  }
- ```
-* 混合调用
+```
+
+ * 混合调用
  - 用服务实现音乐播放时，因为音乐播放必须运行在服务进程中，可是音乐服务中的方法，需要被前台Activity所调用，所以需要混合启动音乐服务
  - 先start，再bind，销毁时先unbind，在stop
 
 * 服务的分类
  * 本地服务：指的是服务和启动服务的activity在同一个进程中
  * 远程服务：指的是服务和启动服务的activity不在同一个进程中
+ 
+* IntentServices
+ - IntentService是继承Service的，那么它包含了Service的全部特性，当然也包含service的生命周期，那么与service不同的是，IntentService在执行onCreate操作的时候，内部开了一个线程，去你执行你的耗时操作。
+  - 多了几个方法`onStartCommand()`这个方法的具体含义是，当你的需要这个service启动的时候，或者调用这个servcie的时候，那么这个方法首先是要被回调的。
+  - `onHandleIntent(Intent intent)` IntentService在执行onCreate的方法的时候，其实开了一个线程HandlerThread,并获得了当前线程队列管理的looper，并且在onStart的时候，把消息置入了消息队列
+  - IntentService是通过Handler looper message的方式实现了一个多线程的操作，同时耗时操作也可以被这个线程管理和执行，同时不会产生ANR的情况。，当任务执行完后，IntentService会自动停止,可以启动IntentService多次，而每一个耗时操作会以工作队列的方式在IntentService的onHandleIntent回调方法中执行，并且，每次只会执行一个工作线程，执行完第一个再执行第二个，以此类推。onCreate方法只执行了一次，而onStartCommand和onStart方法执行了两次，开启了两个Work Thread
 
 * aidl Android interface definition language 安卓接口定义语言
  * 作用：跨进程通信
