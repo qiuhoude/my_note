@@ -144,3 +144,106 @@ protected LayoutParams generateLayoutParams(LayoutParams p) {
 	- cb：子View下边距到父View上边界的距离
 
 
+
+### ViewGroup的其他方法
+*  `onFinishInflate()` 自己布局加载完成后调用
+
+
+
+### ViewDragHelper 自定义ViewGroup帮助类
+
+* 创建实例
+```java
+mDragger = ViewDragHelper.create(this, 1.0f, new ViewDragHelper.Callback(){}`
+```
+
+> 创建实例需要3个参数，第一个就是当前的ViewGroup，第二个sensitivity，主要用于设置touchSlop:
+`helper.mTouchSlop = (int) (helper.mTouchSlop * (1 / sensitivity));` 可见传入越大，mTouchSlop的值就会越小。第三个参数就是Callback，在用户的触摸过程中会回调相关方法，后面会细说。
+
+* 触摸相关方法
+
+```java
+ @Override
+public boolean onInterceptTouchEvent(MotionEvent event)
+{
+	//自定义的viewgroup的交给ViewDragHelper去决定是否拦截事件
+    return mDragger.shouldInterceptTouchEvent(event);
+}
+
+@Override
+public boolean onTouchEvent(MotionEvent event)
+{
+    mDragger.processTouchEvent(event);
+    return true;
+}
+```
+
+* ViewDragHelper.callback相关方法
+>ViewDragHelper拦截看自定义viewgroup事件，所以需要回调来控制
+
+* 常用的方法
+* `tryCaptureView` 如何返回ture则表示可以捕获该view，你可以根据传入的第一个view参数决定哪些可以捕获
+* `clampViewPositionHorizontal`,`clampViewPositionVertical` 可以在该方法中对child移动的边界进行控制，left , top 分别为即将移动到的位置
+* 如果子view是`clickable`,说明可以消耗事件,使用`clampViewPositionHorizontal`对child移到边界控制就不起作用，主要是因为，如果子View不消耗事件，那么整个手势（DOWN-MOVE*-UP）都是直接进入onTouchEvent，在onTouchEvent的DOWN的时候就确定了captureView。如果消耗事件，那么就会先走onInterceptTouchEvent方法，判断是否可以捕获，而在判断的过程中会去判断另外两个回调的方法:`getViewHorizontalDragRange`和`getViewVerticalDragRange`只有这两个方法返回大于0的值才能正常的捕获。重写下面这两个方法
+
+```java
+@Override
+public int getViewHorizontalDragRange(View child)
+{
+     return getMeasuredWidth()-child.getMeasuredWidth();
+}
+
+@Override
+public int getViewVerticalDragRange(View child)
+{
+     return getMeasuredHeight()-child.getMeasuredHeight();
+}
+```
+
+* `onViewReleased` 手指释放的时候回调
+* `onEdgeDragStarted`在边界拖动时回调,需要设置才能回调`mDragger.setEdgeTrackingEnabled(ViewDragHelper.EDGE_LEFT)`
+* `onViewDragStateChanged` 当ViewDragHelper状态发生变化时回调（IDLE,DRAGGING,SETTING[自动滚动时]）
+* `onViewPositionChanged` 当captureview的位置发生改变时回调
+* `onViewCaptured` 当captureview被捕获时回调
+* `onEdgeLock` true的时候会锁住当前的边界，false则unLock。
+* `getOrderedChildIndex` 改变同一个坐标（x,y）去寻找captureView位置的方法。（具体在：findTopChildUnder方法中）
+
+总结回调
+```
+shouldInterceptTouchEvent：
+
+DOWN:
+    getOrderedChildIndex(findTopChildUnder)
+    ->onEdgeTouched
+
+MOVE:
+    getOrderedChildIndex(findTopChildUnder)
+    ->getViewHorizontalDragRange & 
+      getViewVerticalDragRange(checkTouchSlop)(MOVE中可能不止一次)
+    ->clampViewPositionHorizontal&
+      clampViewPositionVertical
+    ->onEdgeDragStarted
+    ->tryCaptureView
+    ->onViewCaptured
+    ->onViewDragStateChanged
+
+processTouchEvent:
+
+DOWN:
+    getOrderedChildIndex(findTopChildUnder)
+    ->tryCaptureView
+    ->onViewCaptured
+    ->onViewDragStateChanged
+    ->onEdgeTouched
+MOVE:
+    ->STATE==DRAGGING:dragTo
+    ->STATE!=DRAGGING:
+        onEdgeDragStarted
+        ->getOrderedChildIndex(findTopChildUnder)
+        ->getViewHorizontalDragRange&
+          getViewVerticalDragRange(checkTouchSlop)
+        ->tryCaptureView
+        ->onViewCaptured
+        ->onViewDragStateChanged
+
+```
