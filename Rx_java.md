@@ -1,3 +1,4 @@
+[TOC]
 # Rxjava笔记
 
 ##学习资料
@@ -107,8 +108,382 @@ console.log(doubled)
 
 ### 操作符
 
-#### map操作符,转换执行结果，将事件序列中的对象或整个序列进行加工处理，转换成不同的事件或事件序列
+#### Creating Observables(Observable的创建操作符)
 
+##### create操作符
+create操作符是所有创建型操作符的“根”，也就是说其他创建型操作符最后都是通过create操作符来创建
+![](http://reactivex.io/documentation/operators/images/create.png)
+
+```java
+Observable.create(new Observable.OnSubscribe<Integer>() {
+    @Override
+    public void call(Subscriber<? super Integer> observer) {
+        try {
+            if (!observer.isUnsubscribed()) {
+                for (int i = 1; i < 5; i++) {
+                    observer.onNext(i);
+                }
+                observer.onCompleted();
+            }
+        } catch (Exception e) {
+            observer.onError(e);
+        }
+    }
+ } ).subscribe(new Subscriber<Integer>() {
+        @Override
+        public void onNext(Integer item) {
+            System.out.println("Next: " + item);
+        }
+
+        @Override
+        public void onError(Throwable error) {
+            System.err.println("Error: " + error.getMessage());
+        }
+
+        @Override
+        public void onCompleted() {
+            System.out.println("Sequence complete.");
+        }
+    });
+```
+>结果：
+Next: 1 
+Next: 2 
+Next: 3 
+Next: 4 
+Sequence complete.
+
+##### from操作符
+from操作符是把其他类型的对象和数据类型转化成Observable，其流程图例如下： 
+![](http://reactivex.io/documentation/operators/images/from.c.png)
+
+```java
+Integer[] items = { 0, 1, 2, 3, 4, 5 };
+Observable myObservable = Observable.from(items);
+
+myObservable.subscribe(
+    new Action1<Integer>() {
+        @Override
+        public void call(Integer item) {
+            System.out.println(item);
+        }
+    },
+    new Action1<Throwable>() {
+        @Override
+        public void call(Throwable error) {
+            System.out.println("Error encountered: " + error.getMessage());
+        }
+    },
+    new Action0() {
+        @Override
+        public void call() {
+            System.out.println("Sequence complete");
+        }
+    }
+);
+```
+>0 
+1 
+2 
+3 
+4 
+5 
+Sequence complete
+
+##### just操作符
+just操作符也是把其他类型的对象和数据类型转化成Observable，它和from操作符很像，只是方法的参数有所差别，其流程图例如下： 
+![](http://reactivex.io/documentation/operators/images/just.c.png)
+
+```java
+Observable.just(1, 2, 3)
+          .subscribe(new Subscriber<Integer>() {
+        @Override
+        public void onNext(Integer item) {
+            System.out.println("Next: " + item);
+        }
+
+        @Override
+        public void onError(Throwable error) {
+            System.err.println("Error: " + error.getMessage());
+        }
+
+        @Override
+        public void onCompleted() {
+            System.out.println("Sequence complete.");
+        }
+    });
+```
+>Next: 1 
+Next: 2 
+Next: 3 
+Sequence complete.
+
+defer操作符
+defer操作符是直到有订阅者订阅时，才通过Observable的工厂方法创建Observable并执行，defer操作符能够保证Observable的状态是最新的，其流程实例如下
+![](http://reactivex.io/documentation/operators/images/defer.c.png)
+下面通过比较defer操作符和just操作符的运行结果作比较：
+
+```java
+        i=10;
+        Observable justObservable = Observable.just(i);
+        i=12;
+        Observable deferObservable = Observable.defer(new Func0<Observable<Object>>() {
+            @Override
+            public Observable<Object> call() {
+                return Observable.just(i);
+            }
+        });
+        i=15;
+
+        justObservable.subscribe(new Subscriber() {
+            @Override
+            public void onCompleted() {
+
+            }
+
+            @Override
+            public void onError(Throwable e) {
+
+            }
+
+            @Override
+            public void onNext(Object o) {
+                System.out.println("just result:" + o.toString());
+            }
+        });
+
+        deferObservable.subscribe(new Subscriber() {
+            @Override
+            public void onCompleted() {
+
+            }
+
+            @Override
+            public void onError(Throwable e) {
+
+            }
+
+            @Override
+            public void onNext(Object o) {
+                System.out.println("defer result:" + o.toString());
+            }
+        });
+   }
+```
+>其中i是类的成员变量，运行结果如下： 
+just result:10 
+defer result:15
+可以看到，just操作符是在创建Observable就进行了赋值操作，而defer是在订阅者订阅时才创建Observable，此时才进行真正的赋值操作
+
+##### timer操作符
+一段时间产生一个数字，然后就结束，可以理解为延迟产生数字，其流程实例如下： 
+![](http://reactivex.io/documentation/operators/images/timer.png)
+timer操作符默认情况下是运行在一个新线程上的,通过observeOn指定线程
+
+```java
+ Observable.timer(200, TimeUnit.MICROSECONDS).observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<Long>() {
+                    @Override
+                    public void onCompleted() {
+                        System.out.println("Sequence complete.");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        System.out.println("error:" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onNext(Long aLong) {
+                        System.out.println("Next:" + aLong.toString());
+                    }
+                });
+```
+>结果  Next:0  Sequence complete.
+
+##### interval操作符
+interval操作符是每隔一段时间就产生一个数字，这些数字从0开始，一次递增1直至无穷大；interval操作符的实现效果跟上面的timer操作符的第二种情形一样。以下是流程实例： 
+![](http://reactivex.io/documentation/operators/images/interval.png)
+interval操作符默认情况下是运行在一个新线程上的，当然你可以通过传入参数来修改其运行的线程。
+
+##### range操作符
+range操作符是创建一组在从n开始，个数为m的连续数字，比如range(3,10)，就是创建3、4、5…12的一组数字，其流程实例如下： 
+![](http://reactivex.io/documentation/operators/images/range.png)
+
+```java
+//产生从3开始，个数为10个的连续数字
+        Observable.range(3,10).subscribe(new Subscriber<Integer>() {
+            @Override
+            public void onCompleted() {
+                System.out.println("Sequence complete.");
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                System.out.println("error:" + e.getMessage());
+            }
+
+            @Override
+            public void onNext(Integer i) {
+                System.out.println("Next:" + i.toString());
+            }
+        });
+```
+>运行结果如下： 
+Next:3 
+Next:4 
+Next:5 
+Next:6 
+…. 
+Next:12 
+Sequence complete.
+
+##### repeat/repeatWhen操作符
+repeat操作符是对某一个Observable，重复产生多次结果，其流程实例如下： 
+![](http://reactivex.io/documentation/operators/images/repeat.o.png)
+
+```java
+//连续产生两组(3,4,5)的数字
+        Observable.range(3,5).repeat(2).subscribe(new Subscriber<Integer>() {
+            @Override
+            public void onCompleted() {
+                System.out.println("Sequence complete.");
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                System.out.println("error:" + e.getMessage());
+            }
+
+            @Override
+            public void onNext(Integer i) {
+                System.out.println("Next:" + i.toString());
+            }
+        });
+```
+>Next:3 
+Next:4 
+Next:5 
+Next:3 
+Next:4 
+Next:5 
+Sequence complete.
+
+repeatWhen操作符是对某一个Observable，有条件地重新订阅从而产生多次结果，其流程实例如下： 
+![](http://reactivex.io/documentation/operators/images/repeatWhen.f.png)
+repeat和repeatWhen操作符__默认情况下是运行在一个新线程上的__，当然你可以通过传入参数来修改其运行的线程。
+
+```java
+Observable.just(1,2,3).repeatWhen(new Func1<Observable<? extends Void>, Observable<?>>() {
+            @Override
+            public Observable<?> call(Observable<? extends Void> observable) {
+                //重复3次
+                return observable.zipWith(Observable.range(1, 3), new Func2<Void, Integer, Integer>() {
+                    @Override
+                    public Integer call(Void aVoid, Integer integer) {
+                        return integer;
+                    }
+                }).flatMap(new Func1<Integer, Observable<?>>() {
+                    @Override
+                    public Observable<?> call(Integer integer) {
+                        System.out.println("delay repeat the " + integer + " count");
+                        //1秒钟重复一次
+                        return Observable.timer(1, TimeUnit.SECONDS);
+                    }
+                });
+            }
+        }).subscribe(new Subscriber<Integer>() {
+            @Override
+            public void onCompleted() {
+                System.out.println("Sequence complete.");
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                System.err.println("Error: " + e.getMessage());
+            }
+
+            @Override
+            public void onNext(Integer value) {
+                System.out.println("Next:" + value);
+            }
+        });
+```
+>运行结果如下： 
+Next:1 
+Next:2 
+Next:3 
+repeat the 1 count 
+Next:1 
+Next:2 
+Next:3 
+repeat the 2 count 
+Next:1 
+Next:2 
+Next:3 
+repeat the 3 count 
+Next:1 
+Next:2 
+Next:3 
+Sequence complete.
+
+
+####  Transforming Observables(Observable的转换操作符)
+
+##### buffer操作符
+Buffer操作符所要做的事情就是将数据安装规定的大小做一下缓存，然后将缓存的数据作为一个集合发射出去,旦源Observable在产生结果的过程中出现异常，即使buffer已经存在收集到的结果，订阅者也会马上收到这个异常，并结束整个过程。
+![](http://reactivex.io/documentation/operators/images/buffer3.png)
+![](http://reactivex.io/documentation/operators/images/buffer4.png)
+第一张示例图中我们指定buffer的大小为3，收集到3个数据后就发射出去，第二张图中我们加入了一个skip参数用来指定每次发射一个集合需要跳过几个数据，图中如何指定count为2，skip为3，就会每3个数据发射一个包含两个数据的集合，如果count==skip的话，我们就会发现其等效于第一种情况了。
+
+ >buffer不仅仅可以通过数量规则来缓存，还可以通过时间等规则来缓存，如规定3秒钟缓存发射一次等，见下面代码，我们创建了两个Observable，并使用buffer对其进行转化，第一个通过数量来缓存，第二个通过时间来缓存。
+
+```java
+Observable<List<Integer>> buffer = Observable.just(1, 2, 3, 4, 5, 6, 7, 8, 9)
+                .buffer(2, 3);
+        //interval从0开始到无穷大
+        Observable<List<Long>> bufferTimer = Observable.interval(100, TimeUnit.MICROSECONDS)
+                //把上面产生的数字内容缓存到列表中，并每隔300毫秒秒通知订阅者
+                .buffer(300, TimeUnit.MILLISECONDS)
+                .observeOn(AndroidSchedulers.mainThread());
+
+        buffer.subscribe(new Subscriber<List<Integer>>() {
+            @Override
+            public void onCompleted() {
+                System.out.println("Sequence complete.");
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                System.err.println("Error: " + e.getMessage());
+            }
+
+            @Override
+            public void onNext(List<Integer> value) {
+                System.out.println("Next:" + value);
+            }
+        });
+
+        bufferTimer.subscribe(new Action1<List<Long>>() {
+            @Override
+            public void call(List<Long> longs) {
+                System.out.println("bufferTimer:" + longs);
+            }
+        });
+
+```
+> Next:[1, 2]
+ Next:[4, 5]
+ Next:[7, 8]
+
+> bufferTimer:[0, 1, 2, 3, 4, 5, 6, 7,....]
+> bufferTimer:[20, 21, 22, 23, 24, 25, 26,....] ....
+
+##### FlatMap操作符
+
+
+
+#### map操作符,转换执行结果，将事件序列中的对象或整个序列进行加工处理，转换成不同的事件或事件序
 将String装换成Bitmap 
 
 ```java
