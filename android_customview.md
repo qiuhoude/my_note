@@ -146,7 +146,8 @@ protected LayoutParams generateLayoutParams(LayoutParams p) {
 
 
 ### ViewGroup的其他方法
-*  `onFinishInflate()` 自己布局加载完成后调用
+*  `onFinishInflate()` 从xml加载组件后调用
+*  `onSizeChanged()` 组件大小改变时调用
 
 
 
