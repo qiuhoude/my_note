@@ -60,6 +60,25 @@
                 - [onExceptionResumeNext操作符](#onexceptionresumenext操作符)
                 - [retry操作符](#retry操作符)
                 - [retryWhen操作符](#retrywhen操作符)
+            - [Observable Utility Operators(Observable的功能性操作符)](#observable-utility-operatorsobservable的功能性操作符)
+                - [Delay操作符](#delay操作符)
+                - [Do操作符](#do操作符)
+                - [Meterialize操作符](#meterialize操作符)
+                - [SubscribOn/ObserverOn操作符](#subscribonobserveron操作符)
+                - [TimeInterval\TimeStamp操作符](#timeinterval\timestamp操作符)
+                - [Timeout操作符](#timeout操作符)
+                - [Using操作符](#using操作符)
+            - [Conditional and Boolean Operators(Observable的条件操作符)](#conditional-and-boolean-operatorsobservable的条件操作符)
+                - [All操作符](#all操作符)
+                - [Contains、IsEmptyAll操作符](#contains、isemptyall操作符)
+                - [DefaultIfEmpty操作符](#defaultifempty操作符)
+                - [SequenceEqual操作符](#sequenceequal操作符)
+                - [SkipUntil、SkipWhile操作符](#skipuntil、skipwhile操作符)
+                - [TakeUntil、TakeWhile操作符](#takeuntil、takewhile操作符)
+            - [Mathematical and Aggregate Operators(Observable数学运算及聚合操作符)](#mathematical-and-aggregate-operatorsobservable数学运算及聚合操作符)
+                - [Concat操作符](#concat操作符)
+                - [Count操作符](#count操作符)
+                - [Reduce、Collect操作符](#reduce、collect操作符)
             - [map操作符,转换执行结果，将事件序列中的对象或整个序列进行加工处理，转换成不同的事件或事件序](#map操作符转换执行结果，将事件序列中的对象或整个序列进行加工处理，转换成不同的事件或事件序)
 
 <!-- /MarkdownTOC -->
@@ -2192,8 +2211,89 @@ Sequence complete.
 
 
 
+<a name="observable-utility-operatorsobservable的功能性操作符"></a>
+#### Observable Utility Operators(Observable的功能性操作符)
+
+<a name="delay操作符"></a>
+##### Delay操作符
+顾名思义，Delay操作符就是让发射数据的时机延后一段时间，这样所有的数据都会依次延后一段时间发射。在Rxjava中将其实现为Delay和DelaySubscription。不同之处在于Delay是延时数据的发射，而DelaySubscription是延时注册Subscriber。
 
 
+<a name="do操作符"></a>
+##### Do操作符
+Do操作符就是给Observable的生命周期的各个阶段加上一系列的回调监听，当Observable执行到这个阶段的时候，这些回调就会被触发。在Rxjava实现了很多的doxxx操作符。
+DoOnEach可以给Observable加上这样的样一个回调：Observable每发射一个数据的时候就会触发这个回调，不仅包括onNext还包括onError和onCompleted。
+DoOnNext则只有onNext的时候才会被触发。
+
+
+<a name="meterialize操作符"></a>
+##### Meterialize操作符
+Meterialize操作符将OnNext/OnError/OnComplete都转化为一个Notification对象并按照原来的顺序发射出来，而DeMeterialize则是执行相反的过程。
+
+<a name="subscribonobserveron操作符"></a>
+##### SubscribOn/ObserverOn操作符
+
+<a name="timeinterval\timestamp操作符"></a>
+##### TimeInterval\TimeStamp操作符
+
+<a name="timeout操作符"></a>
+##### Timeout操作符
+
+<a name="using操作符"></a>
+##### Using操作符
+
+
+
+
+<a name="conditional-and-boolean-operatorsobservable的条件操作符"></a>
+#### Conditional and Boolean Operators(Observable的条件操作符)
+
+<a name="all操作符"></a>
+##### All操作符
+
+<a name="contains、isemptyall操作符"></a>
+##### Contains、IsEmptyAll操作符
+
+<a name="defaultifempty操作符"></a>
+##### DefaultIfEmpty操作符
+
+<a name="sequenceequal操作符"></a>
+##### SequenceEqual操作符
+SequenceEqual操作符用来判断两个Observable发射的数据序列是否相同（发射的数据相同，数据的序列相同，结束的状态相同），如果相同返回true，否则返回false
+
+<a name="skipuntil、skipwhile操作符"></a>
+##### SkipUntil、SkipWhile操作符
+
+<a name="takeuntil、takewhile操作符"></a>
+##### TakeUntil、TakeWhile操作符
+
+
+
+
+
+<a name="mathematical-and-aggregate-operatorsobservable数学运算及聚合操作符"></a>
+#### Mathematical and Aggregate Operators(Observable数学运算及聚合操作符)
+
+<a name="concat操作符"></a>
+##### Concat操作符
+ Concat操作符将多个Observable结合成一个Observable并发射数据，并且严格按照先后顺序发射数据，前一个Observable的数据没有发射完，是不能发射后面Observable的数据的。
+    有两个操作符跟它类似，但是有区别，分别是
+    1.startWith：仅仅是在前面插上一个数据。
+    2.merge:其发射的数据是无序的。
+![](http://reactivex.io/documentation/operators/images/concat.png)
+
+<a name="count操作符"></a>
+##### Count操作符
+    Count操作符用来统计源Observable发射了多少个数据，最后将数目给发射出来；如果源Observable发射错误，则会将错误直接报出来；在源Observable没有终止前，count是不会发射统计数据的。
+
+<a name="reduce、collect操作符"></a>
+##### Reduce、Collect操作符
+- Reduce操作符应用一个函数接收Observable发射的数据和函数的计算结果作为下次计算的参数，输出最后的结果。跟前面我们了解过的scan操作符很类似，只是scan会输出每次计算的结果，而reduce只会输出最后的结果。
+-  Collect操作符类似于Reduce，但是其目的不同，collect用来将源Observable发射的数据给收集到一个数据结构里面，需要使用两个参数：
+    1.一个产生收集数据结构的函数。
+    2.一个接收第一个函数产生的数据结构和源Observable发射的数据作为参数的函数。
+
+                
 
 
 ----
