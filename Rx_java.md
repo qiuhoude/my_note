@@ -2213,6 +2213,7 @@ Sequence complete.
 
 <a name="observable-utility-operatorsobservable的功能性操作符"></a>
 #### Observable Utility Operators(Observable的功能性操作符)
+[博客链接](http://blog.chinaunix.net/uid-20771867-id-5206187.html)
 
 <a name="delay操作符"></a>
 ##### Delay操作符
@@ -2247,6 +2248,7 @@ Meterialize操作符将OnNext/OnError/OnComplete都转化为一个Notification�
 
 <a name="conditional-and-boolean-operatorsobservable的条件操作符"></a>
 #### Conditional and Boolean Operators(Observable的条件操作符)
+[博客链接](http://blog.chinaunix.net/uid-20771867-id-5208237.html)
 
 <a name="all操作符"></a>
 ##### All操作符
@@ -2273,6 +2275,7 @@ SequenceEqual操作符用来判断两个Observable发射的数据序列是否相
 
 <a name="mathematical-and-aggregate-operatorsobservable数学运算及聚合操作符"></a>
 #### Mathematical and Aggregate Operators(Observable数学运算及聚合操作符)
+[博客链接](http://blog.chinaunix.net/uid-20771867-id-5209862.html)
 
 <a name="concat操作符"></a>
 ##### Concat操作符

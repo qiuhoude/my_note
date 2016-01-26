@@ -150,6 +150,29 @@ protected LayoutParams generateLayoutParams(LayoutParams p) {
 *  `onSizeChanged()` 组件大小改变时调用
 
 
+### 在ViewGroup中,让子view移动
+* `layout(l,t,r,b);` 
+* `offsetTopAndBottom(offset)和offsetLeftAndRight(offset);` view中的方法
+* `scrollTo`(具体位置),`scrollBy`(相对当前位置) 注意：单独的view调用是没效果的(必须外层包裹layout),滚动的并不是viewgroup内容本身，而是它的矩形框里面的内容进行滚动,移动是瞬间。
+* scrollview 中有 `smoothScrollTo`,`smoothScrollBy`进行平滑的移动
+* `Scroller`可以模拟一个执行流程
+* `ViewDragHelper` 中 `smoothSlideViewTo` 也可以进行平滑移动(里面维护了一个Scroller),所以viewgroup需要重写`computeScroll()`方法
+
+
+### Scroller 
+#### 1 构造器
+```java
+//传入Interpolator补间器,可以实现动画的变化率，比如匀速变化 先加速后减速
+Scroller(Context context, Interpolator补间器,可以实现动画的变化率，比如先快后慢 interpolator)
+```
+#### 绘制方法
+`startScroll(int startX, int startY, int dx, int dy, int duration)` 滚动之前的基本设置,并没有滚动view  
+
+`computeScrollOffset()` 计算滚动，如果动画持续时间小于我们设置的滚动持续时间mDuration,进去switch的SCROLL_MODE，然后根据Interpolator来计算出在该时间段里面移动的距离,赋值给mCurrX， mCurrY， 所以该方法的作用是，计算在0到mDuration时间段内滚动的偏移量，并且判断滚动是否结束，true代表还没结束，false则表示滚动  
+
+`view`的`computeScroll()`该方法是滑动的控制方法,在绘制View时，会在`draw()`过程调用该方法  
+
+View滚动的实现原理，我们先调用Scroller的`startScroll()`方法来进行一些滚动的初始化设置，然后迫使View进行绘制，我们调用View的invalidate()或postInvalidate()就可以重新绘制View，绘制View的时候会触发`computeScroll()`方法，我们重写computeScroll()，在computeScroll()里面先调用Scroller的`computeScrollOffset()`方法来判断滚动有没有结束，如果滚动没有结束我们就调用scrollTo()方法来进行滚动，该scrollTo()方法虽然会重新绘制View,但是我们还是要手动调用下invalidate()或者postInvalidate()来触发界面重绘，重新绘制View又触发computeScroll()，所以就进入一个循环阶段，这样子就实现了在某个时间段里面滚动某段距离的一个平滑的滚动效果
 
 ### ViewDragHelper 自定义ViewGroup帮助类
 
@@ -182,30 +205,68 @@ public boolean onTouchEvent(MotionEvent event)
 * ViewDragHelper.callback相关方法
 >ViewDragHelper拦截看自定义viewgroup事件，所以需要回调来控制
 
-* 常用的方法
+> 常用的方法
+
 * `tryCaptureView` 如何返回ture则表示可以捕获该view，你可以根据传入的第一个view参数决定哪些可以捕获
-* `clampViewPositionHorizontal`,`clampViewPositionVertical` 可以在该方法中对child移动的边界进行控制，left , top 分别为即将移动到的位置
+
+```java
+//根据返回结果决定当前child是否可以拖拽
+// child 当前被拖拽的View
+// pointerId 区分多点触摸的id
+@Override
+public boolean tryCaptureView(View child, int pointerId) {
+    Log.d(TAG, "tryCaptureView: " + child);
+    return true;
+};
+```
+* `onViewCaptured` 当captureview被捕获时回调
+
+* `clampViewPositionHorizontal`,`clampViewPositionVertical` 根据建议值 修正将要移动到的(横向)位置,__此时view没有发生真正的移动__
+
+```java
+//  根据建议值 修正将要移动到的(横向)位置  
+// 此时没有发生真正的移动
+public int clampViewPositionHorizontal(View child, int left, int dx) {
+    // child: 当前拖拽的View
+    // left 新的位置的建议值, dx 位置变化量
+    // left = oldLeft + dx;
+    Log.d(TAG, "clampViewPositionHorizontal: " 
+            + "oldLeft: " + child.getLeft() + " dx: " + dx + " left: " +left);
+    return left;
+}
+```
+
 * 如果子view是`clickable`,说明可以消耗事件,使用`clampViewPositionHorizontal`对child移到边界控制就不起作用，主要是因为，如果子View不消耗事件，那么整个手势（DOWN-MOVE*-UP）都是直接进入onTouchEvent，在onTouchEvent的DOWN的时候就确定了captureView。如果消耗事件，那么就会先走onInterceptTouchEvent方法，判断是否可以捕获，而在判断的过程中会去判断另外两个回调的方法:`getViewHorizontalDragRange`和`getViewVerticalDragRange`只有这两个方法返回大于0的值才能正常的捕获。重写下面这两个方法
 
 ```java
+//返回拖拽的范围, 不对拖拽进行真正的限制. 仅仅决定了动画执行速度
 @Override
 public int getViewHorizontalDragRange(View child)
 {
      return getMeasuredWidth()-child.getMeasuredWidth();
 }
-
-@Override
-public int getViewVerticalDragRange(View child)
-{
-     return getMeasuredHeight()-child.getMeasuredHeight();
-}
 ```
 
-* `onViewReleased` 手指释放的时候回调
+* `onViewPositionChanged` 当captureview的位置发生改变时回调(进行更新状态, 伴随动画, 重绘界面),__此时,View已经发生了位置的改变__
+
+```java
+// changedView 改变位置的View
+// left 新的左边值
+// dx 水平方向变化量
+public void onViewPositionChanged(View changedView, int left, int top,int dx, int dy) {}
+```
+
+* `onViewReleased` 手指释放的时候回调,(执行动画)
+
+```java
+// View releasedChild 被释放的子View 
+// float xvel 水平方向的速度, 向右为+正
+// float yvel 竖直方向的速度, 向下为+
+public void onViewReleased(View releasedChild, float xvel, float yvel) {}
+```
+
 * `onEdgeDragStarted`在边界拖动时回调,需要设置才能回调`mDragger.setEdgeTrackingEnabled(ViewDragHelper.EDGE_LEFT)`
 * `onViewDragStateChanged` 当ViewDragHelper状态发生变化时回调（IDLE,DRAGGING,SETTING[自动滚动时]）
-* `onViewPositionChanged` 当captureview的位置发生改变时回调
-* `onViewCaptured` 当captureview被捕获时回调
 * `onEdgeLock` true的时候会锁住当前的边界，false则unLock。
 * `getOrderedChildIndex` 改变同一个坐标（x,y）去寻找captureView位置的方法。（具体在：findTopChildUnder方法中）
 
@@ -246,5 +307,5 @@ MOVE:
         ->tryCaptureView
         ->onViewCaptured
         ->onViewDragStateChanged
-
 ```
+
