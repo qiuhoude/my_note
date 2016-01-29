@@ -133,6 +133,25 @@ protected LayoutParams generateLayoutParams(LayoutParams p) {
 - getMeasuredHeight()是实际View的大小,getHeight控件在屏幕中大小,当view不超过屏幕，两者相等
 - 如果view超出屏幕,getMeasuredHeight()等于getHeight()加上屏幕之外没有显示的大小
 
+#### 如何获取未加载完成的view的宽高
+1. 使用`view.measure(0,0)`方法可以主动通知系统去测量，然后就可以直接使用它获取宽高,`getMeasuredHeight()`  
+2. 通过拿到`ViewTreeObserver`增加监听器  
+
+```java
+view.getViewTreeObserver()
+.addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
+
+    @Override
+    public void onGlobalLayout() {
+        //移除监听器
+        view.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+        //直接可以获取宽高
+        view.getHeight();
+    }
+});
+```
+
+
 
 ### onLayout
 - 决定子view该放在什么位置
@@ -153,10 +172,31 @@ protected LayoutParams generateLayoutParams(LayoutParams p) {
 ### 在ViewGroup中,让子view移动
 * `layout(l,t,r,b);` 
 * `offsetTopAndBottom(offset)和offsetLeftAndRight(offset);` view中的方法
-* `scrollTo`(具体位置),`scrollBy`(相对当前位置) 注意：单独的view调用是没效果的(必须外层包裹layout),滚动的并不是viewgroup内容本身，而是它的矩形框里面的内容进行滚动,移动是瞬间。
+* `scrollTo`(具体位置),`scrollBy`(相对当前位置) 注意：单独的view调用是没效果的(必须外层包裹layout),滚动的并不是viewgroup内容本身，而是它的矩形框里面的内容进行滚动,移动是瞬间。  
+  
+平滑移动  
 * scrollview 中有 `smoothScrollTo`,`smoothScrollBy`进行平滑的移动
 * `Scroller`可以模拟一个执行流程
-* `ViewDragHelper` 中 `smoothSlideViewTo` 也可以进行平滑移动(里面维护了一个Scroller),所以viewgroup需要重写`computeScroll()`方法
+* `ViewDragHelper` 中 `smoothSlideViewTo()` 也可以进行平滑移动.因为里面维护了一个Scroller;所以viewgroup需要重写`computeScroll()`方法,并在里面调用ViewDragHelper的`continueSettling(true)`(每次执行都会调用回调的`onViewPositionChanged()方法`),会返回Boolean类型判断是否继续动画,true代码动画为执行完成。
+
+```java
+ // 触发一个平滑动画
+if (mDragHelper.smoothSlideViewTo(mMainContent, finalLeft, finalTop)) {
+    // 返回true代表还没有移动到指定位置, 需要刷新界面.
+    // 参数传this(child所在的ViewGroup)
+    ViewCompat.postInvalidateOnAnimation(this);
+}
+
+ @Override
+public void computeScroll() {
+    super.computeScroll();
+    //持续平滑动画 (高频率调用)
+    if (mDragHelper.continueSettling(true)){
+        //  如果返回true, 动画还需要继续执行
+        ViewCompat.postInvalidateOnAnimation(this);
+    }
+}
+```
 
 
 ### Scroller 
@@ -172,7 +212,11 @@ Scroller(Context context, Interpolator补间器,可以实现动画的变化率�
 
 `view`的`computeScroll()`该方法是滑动的控制方法,在绘制View时，会在`draw()`过程调用该方法  
 
-View滚动的实现原理，我们先调用Scroller的`startScroll()`方法来进行一些滚动的初始化设置，然后迫使View进行绘制，我们调用View的invalidate()或postInvalidate()就可以重新绘制View，绘制View的时候会触发`computeScroll()`方法，我们重写computeScroll()，在computeScroll()里面先调用Scroller的`computeScrollOffset()`方法来判断滚动有没有结束，如果滚动没有结束我们就调用scrollTo()方法来进行滚动，该scrollTo()方法虽然会重新绘制View,但是我们还是要手动调用下invalidate()或者postInvalidate()来触发界面重绘，重新绘制View又触发computeScroll()，所以就进入一个循环阶段，这样子就实现了在某个时间段里面滚动某段距离的一个平滑的滚动效果
+View滚动的实现原理，我们先调用Scroller的`startScroll()`方法来进行一些滚动的初始化设置，然后迫使View进行绘制，我们调用View的invalidate()或postInvalidate()就可以重新绘制View，绘制View的时候会触发`computeScroll()`方法，我们重写computeScroll()，在computeScroll()里面先调用Scroller的`computeScrollOffset()`方法来判断滚动有没有结束，如果滚动没有结束我们就调用scrollTo()方法来进行滚动，该scrollTo()方法虽然会重新绘制View,但是我们还是要手动调用下invalidate()或者postInvalidate()来触发界面重绘，重新绘制View又触发computeScroll()，所以就进入一个循环阶段，这样子就实现了在某个时间段里面滚动某段距离的一个平滑的滚动效果  
+  
+使用
+
+
 
 ### ViewDragHelper 自定义ViewGroup帮助类
 
@@ -205,7 +249,7 @@ public boolean onTouchEvent(MotionEvent event)
 * ViewDragHelper.callback相关方法
 >ViewDragHelper拦截看自定义viewgroup事件，所以需要回调来控制
 
-> 常用的方法
+> 常用回调的方法
 
 * `tryCaptureView` 如何返回ture则表示可以捕获该view，你可以根据传入的第一个view参数决定哪些可以捕获
 
@@ -309,3 +353,5 @@ MOVE:
         ->onViewDragStateChanged
 ```
 
+### ViewCompat 
+view更新动画重绘 ViewCompat.postInvalidateOnAnimation(view)
