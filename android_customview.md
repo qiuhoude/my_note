@@ -169,9 +169,10 @@ view.getViewTreeObserver()
 *  `onSizeChanged()` 组件大小改变时调用
 
 
-### 在ViewGroup中,让子view移动
+### 在ViewGroup中,让子view实现移动的方法
 * `layout(l,t,r,b);` 
 * `offsetTopAndBottom(offset)和offsetLeftAndRight(offset);` view中的方法
+* `LayoutParams` 通过`getLayoutParams()` 获取，然后`layoutParams.leftMargin = getLeft()+ offsetX`,最后`setLayoutParams()`设置进去
 * `scrollTo`(具体位置),`scrollBy`(相对当前位置) 注意：单独的view调用是没效果的(必须外层包裹layout),滚动的并不是viewgroup内容本身，而是它的矩形框里面的内容进行滚动,移动是瞬间。  
   
 平滑移动  
