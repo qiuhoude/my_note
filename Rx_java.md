@@ -9,6 +9,7 @@
         - [什么是响应式编程？](#什么是响应式编程？)
             - [命令式编程](#命令式编程)
             - [声明式编程](#声明式编程)
+        - [Rxjava的基础知识](#rxjava的基础知识)
         - [操作符](#操作符)
             - [Creating Observables(Observable的创建操作符)](#creating-observablesobservable的创建操作符)
                 - [create操作符](#create操作符)
@@ -195,6 +196,21 @@ console.log(doubled)
 ```
 
 - SQL是声明式编程语言
+
+
+<a name="rxjava的基础知识"></a>
+### Rxjava的基础知识
+观察者模式很适合下面这些场景  
+- 当你的架构有两个实体类，一个依赖另一个，你想让它们互不影响或者是独立复用它们时。
+- 当一个变化的对象通知那些与它自身变化相关联的未知数量的对象时。
+- 当一个变化的对象通知那些无需推断具体类型的对象时。
+
+Rxjava的四种角色:`Observable` `Subjects`(生产实体) ; `Observer` `Subscriber`  (消费实体)  
+  
+Subject = Observable + Observer  
+>subject是一个神奇的对象，它可以是一个Observable同时也可以是一个Observer：它作为连接这两个世界的一座桥梁。一个Subject可以订阅一个Observable，就像一个观察者，并且它可以发射新的数据，或者传递它接受到的数据，就像一个Observable。很明显，作为一个Observable，观察者们或者其它Subject都可以订阅它。
+
+
 
 
 
