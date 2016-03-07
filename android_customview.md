@@ -217,7 +217,143 @@ View滚动的实现原理，我们先调用Scroller的`startScroll()`方法来�
   
 使用
 
+### VelocityTracker 和 ViewConfiguration
+- 获取 `mVelocityTracker = VelocityTracker.obtain();`, `mViewConfiguration = ViewConfiguration.get(context);`
+- `mViewConfiguration.getScaledTouchSlop()` 获得能够进行手势滑动的距离,手的移动要大于这个距离才开始移动控件。如果小于这个距离就不触发移动控件，如viewpager就是用这个距离来判断用户是否翻页
+- `mMaximumVelocity = mViewConfiguration.getScaledMaximumFlingVelocity()`获得允许执行一个fling手势动作的最大速度值
+- `mMinimumVelocity = mViewConfiguration.getScaledMinimumFlingVelocity()`获得允许执行一个fling手势动作的最小速度值
+- `mVelocityTracker.computeCurrentVelocity(1000, mMaximumVelocity);`之后调用`mVelocityTracker.getYVelocity()`获取当前y轴的速度  
+  
+自定义控件，平滑移动的思路：  
+参考：[泡网](http://www.jcodecraeer.com/a/anzhuokaifa/androidkaifa/2012/1114/558.html)  
+> 初始化  
 
+```java
+private void init(Context context) {  
+    mScroller = new Scroller(getContext());  
+    setFocusable(true);  //是否聚焦
+    setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);  
+    setWillNotDraw(false);  
+    final ViewConfiguration configuration = ViewConfiguration.get(context);  
+    mTouchSlop = configuration.getScaledTouchSlop();  
+    mMinimumVelocity = configuration.getScaledMinimumFlingVelocity();  
+    mMaximumVelocity = configuration.getScaledMaximumFlingVelocity();
+    }
+```
+
+> 申明一个用来处理滑动操作的方法fling(int velocityY)
+
+```java
+public void fling(int velocityY) {  
+    if (getChildCount() > 0) {  
+            mScroller.fling(getScrollX(), getScrollY(), 0, velocityY, 0, 0, 0,  
+                            maxScrollEdge);  
+            final boolean movingDown = velocityY > 0;  
+            //awakenScrollBars(mScroller.getDuration());//动画开始的延时,当参数startDelay为0时动画将立刻开始，其实就是一个延迟的作用 
+            invalidate();  
+    }  
+}
+```
+
+> VelocityTracker获取资源和释放资源的封装
+
+```java
+private void obtainVelocityTracker(MotionEvent event) {  
+    if (mVelocityTracker == null) {  
+            mVelocityTracker = VelocityTracker.obtain();  
+    }  
+    mVelocityTracker.addMovement(event);  
+      
+}  
+      
+     
+private void releaseVelocityTracker() {  
+    if (mVelocityTracker != null) {
+            mVelocityTracker.clear();  
+            mVelocityTracker.recycle();  
+            mVelocityTracker = null;  
+    }  
+}
+```
+
+> onTouchEvent(MotionEvent event)方法的重写
+
+```java
+public boolean onTouchEvent(MotionEvent event) {
+    if (event.getAction() == MotionEvent.ACTION_DOWN && event.getEdgeFlags() != 0) {  
+        return false;  
+    }  
+    obtainVelocityTracker(event);  
+    final int action = event.getAction();  
+    final float x = event.getX();  
+    final float y = event.getY();  
+    switch (action) {  
+        case MotionEvent.ACTION_DOWN:  
+            Log.d(TAG, "ACTION_DOWN#currentScrollY:" + getScrollY()  
+                            + ", mLastY:" + mLastY);  
+            if (!mScroller.isFinished()) {  
+                    mScroller.abortAnimation();  
+            }  
+            mLastY = y;  
+            return true;  
+    case MotionEvent.ACTION_MOVE:  
+            final int deltaY = (int) (mLastY - y);  
+            if (deltaY < 0) {  
+                if (getScrollY() > 0) {  
+                    scrollBy(0, deltaY);  
+                }   
+            } else if (deltaY > 0) {  
+                mIsInEdge = getScrollY() <= childTotalHeight - height;  
+                if (mIsInEdge) {  
+                    scrollBy(0, deltaY);  
+                }  
+            }  
+            mLastY = y;  
+            break;  
+    case MotionEvent.ACTION_UP:  
+            final VelocityTracker velocityTracker = mVelocityTracker;  
+            velocityTracker.computeCurrentVelocity(1000, mMaximumVelocity);  
+            int initialVelocitY = (int) velocityTracker.getYVelocity();  
+            if ((Math.abs(initialVelocitY) > mMinimumVelocity)  
+                            && getChildCount() > 0) {  
+                    fling(-initialVelocitY);  
+            }  
+            releaseVelocityTracker();  
+            break;  
+     case MotionEvent.ACTION_CANCEL:
+            mIsInEdge = false;
+            recycleVelocityTracker();
+            if (!mScroller.isFinished()) {
+                mScroller.abortAnimation();
+            }
+            break;
+    }  
+    return super.onTouchEvent(event);  
+}
+```
+
+> 重写computeScroll()
+
+```java
+ if (mScroller.computeScrollOffset()) {//判断滑动是否完成
+        scrollTo(0, mScroller.getCurrY());
+        postInvalidate();
+    }
+```
+
+1. 首先我们通过`VelocityTracker`、`ViewConfiguration`类得到一些惯性滑动所必须的变量，比如手势离开屏幕时的初始速度，允许进行手势操作的最小距离以及允许手势操作的速度边界值；
+2. 创建Scroller的对象，使用它的fling方法供我们控制界面滑动使用；
+3. 重写onTouchEvent方法，当我们用手指在屏幕上来回滑动时此时执行的是scrollBy方法来刷新界面，当手指离开屏幕，此时就要开始执行`ACTION_UP`后面的操作了；
+    1. 通过对手指离开屏幕时的速度进行判断是否能够进行惯性滑动操作，
+    2. 如果能够执行那么就使用Scroller类的fling方法启动滑动动画，
+    3. 这时需要调用一下invalidate()方法来间接的调用computeScroll方法，
+    4. 在computeScroll方法中对Scroller的动画是否执行完成做了判断
+    5. 如果动画没有完成(mScroller.computeScrollOffset() == true)那么就使用scrollTo方法对mScrollX、mScrollY的值进行重新计算刷新界面，
+    6. 调用postInvalidate()方法重新绘制界面，
+    7. postInvalidate()方法会调用invalidate()方法，
+    8. invalidate()方法又会调用computeScroll方法，
+    9. 就这样周而复始的相互调用，直到mScroller.computeScrollOffset()返回false才会停止界面的重绘动作
+ 
 
 ### ViewDragHelper 自定义ViewGroup帮助类
 
