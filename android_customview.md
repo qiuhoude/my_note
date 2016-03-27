@@ -355,6 +355,37 @@ public boolean onTouchEvent(MotionEvent event) {
     9. 就这样周而复始的相互调用，直到mScroller.computeScrollOffset()返回false才会停止界面的重绘动作
  
 
+
+### ListView 的技巧
+##### 分割线 
+```xml 
+android:divider="@android:color/darker_gray"
+android:dividerHeight="10dp"
+```
+##### 滚动条设置
+```xml
+android:scrollbars="none"
+```
+##### item点击效果
+```xml
+<!-- 取消点击效果 -->
+android:listSelector="#00000000"
+<!-- or 使用Android原始的透明颜色 -->
+android:listSelector="@android:color/transparent"
+```
+##### item显示位置
+```java
+listView.setSelection(N);
+//或者平滑的移动
+listView.smoothScrollToPosition(position);
+listView.smoothScrollByOffset(offset);
+listView.smoothScrollBy(distance,duration);
+```
+##### 
+
+
+
+
 ### ViewDragHelper 自定义ViewGroup帮助类
 
 * 创建实例
