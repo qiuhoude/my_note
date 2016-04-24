@@ -525,12 +525,12 @@ view更新动画重绘 ViewCompat.postInvalidateOnAnimation(view)
 [参考2](http://www.cnblogs.com/sunzn/archive/2013/05/10/3064129.html)  
 
 
-|---------------------------------------|----------|----------|-----------|------|
+
 |           Touch事件相关方法           |   功能   | Activity | ViewGroup | View |
+|---------------------------------------|----------|----------|-----------|------|
 |   dispatchTouchEvent(MotionEvent ev)  | 事件分发 |   Yes    |    Yes    | Yes  |
 | onInterceptTouchEvent(MotionEvent ev) | 事件拦截 |    No    |    Yes    |  No  |
 |      onTouchEvent(MotionEvent ev)     | 事件响应 |   Yes    |    Yes    | Yes  |
-|---------------------------------------|----------|----------|-----------|------|
   
 activity和 最小单位的view(比如TextView) 是没有事件拦截的  
 
@@ -573,9 +573,29 @@ activity和 最小单位的view(比如TextView) 是没有事件拦截的
     - (4) 如果ViewGroup从这个函数返回true，说明从子view拦截了事件，并将它们通过onTouchEvent()传递给这个ViewGroup。当前目标View将接收到相同事件，但是Action为ACTION_CANCEL，并且没有进一步消息在这里传递。
 - `dispatchTouchEvent` 进行事件分发
 - `getParent().requestDisallowInterceptTouchEvent(true)` 可以请求父布局不拦截自己的onTouchEvent事件
-- 
 
+### 如果要让自定义view有保存数据
+- 需要重写`onSaveInstanceState()` 和 `onRestoreInstanceState()` 并且还要保存父类的数据
 
+```java
+protected Parcelable onSaveInstanceState() {
+    Bundle bundle = new Bundle();
+    bundle.putParcelable(INSTANCE_STATUS,super.onSaveInstanceState());//保持父类数据
+    bundle.putFloat(STATUS_ALPHA,mAlpha);
+    return bundle;
+}
+protected void onRestoreInstanceState(Parcelable state) {
+    if(state instanceof  Bundle){
+        Bundle bundle = (Bundle) state;
+        mAlpha = bundle.getFloat(STATUS_ALPHA);
+        super.onRestoreInstanceState(bundle.getParcelable(INSTANCE_STATUS));
+    }else {
+        super.onRestoreInstanceState(state);
+    }
+}
+```
+
+- 要给自定义view,在xml中加上id
 
 
 
