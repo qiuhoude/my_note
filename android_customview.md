@@ -134,8 +134,8 @@ protected LayoutParams generateLayoutParams(LayoutParams p) {
 - 如果view超出屏幕,getMeasuredHeight()等于getHeight()加上屏幕之外没有显示的大小
 
 #### 如何获取未加载完成的view的宽高
-1. 使用`view.measure(0,0)`方法可以主动通知系统去测量，然后就可以直接使用它获取宽高,`getMeasuredHeight()`  
-2. 通过拿到`ViewTreeObserver`增加监听器  
+- 使用`view.measure(0,0)`方法可以主动通知系统去测量，然后就可以直接使用它获取宽高,`getMeasuredHeight()`  
+- 通过拿到`ViewTreeObserver`增加监听器  
 
 ```java
 view.getViewTreeObserver()
@@ -150,7 +150,7 @@ view.getViewTreeObserver()
     }
 });
 ```
-
+- 还可以是用`view.post(Runnable) `来处理布局加载完成之后的操作
 
 
 ### onLayout
@@ -168,39 +168,33 @@ view.getViewTreeObserver()
 *  `onFinishInflate()` 从xml加载组件后调用
 *  `onSizeChanged()` 组件大小改变时调用
 
+### 获取坐标
+#### view提供的
+- `getTop()` view自身的顶部到__父布局顶部的距离__
+- `getLeft()`view自身的左边到__父布局左边的距离__
+- `getRight()` view自身的右边到__父布局左边的距离__
+- `getBottom()`view自身的底部到__父布局顶部的距离__
 
-### 在ViewGroup中,让子view实现移动的方法
-* `layout(l,t,r,b);` 
+#### MotionEvent提供的
+- `getX()` 获取点击事件距离控件__左边__的距离 ，视图坐标
+- `getY()` 获取点击事件距离控件__顶边__的距离 ，视图坐标
+- `getRawX()`获取点击事件距离整个屏幕左边的距离,绝对坐标
+- `getRawY()`获取点击事件距离整个屏幕顶边的距离,绝对坐标
+
+
+### 在ViewGroup中,让子view实现滑动方法(7种)
+* `layout(l,t,r,b);` viewgroup中的方法
 * `offsetTopAndBottom(offset)和offsetLeftAndRight(offset);` view中的方法
 * `LayoutParams` 通过`getLayoutParams()` 获取，然后`layoutParams.leftMargin = getLeft()+ offsetX`,最后`setLayoutParams()`设置进去
-* `scrollTo`(具体位置),`scrollBy`(相对当前位置) 注意：单独的view调用是没效果的(必须外层包裹layout),滚动的并不是viewgroup内容本身，而是它的矩形框里面的内容进行滚动,移动是瞬间。  
+* `scrollTo`(具体位置),`scrollBy`(相对当前位置) view中的方法 注意：单独的view调用是没效果的(必须外层包裹layout),滚动的并不是viewgroup内容本身，而是它的矩形框里面的内容进行滚动,移动是瞬间。  
   
 平滑移动  
 * scrollview 中有 `smoothScrollTo`,`smoothScrollBy`进行平滑的移动
 * `Scroller`可以模拟一个执行流程
-* `ViewDragHelper` 中 `smoothSlideViewTo()` 也可以进行平滑移动.因为里面维护了一个Scroller;所以viewgroup需要重写`computeScroll()`方法,并在里面调用ViewDragHelper的`continueSettling(true)`(每次执行都会调用回调的`onViewPositionChanged()方法`),会返回Boolean类型判断是否继续动画,true代码动画为执行完成。
-
-```java
- // 触发一个平滑动画
-if (mDragHelper.smoothSlideViewTo(mMainContent, finalLeft, finalTop)) {
-    // 返回true代表还没有移动到指定位置, 需要刷新界面.
-    // 参数传this(child所在的ViewGroup)
-    ViewCompat.postInvalidateOnAnimation(this);
-}
-
- @Override
-public void computeScroll() {
-    super.computeScroll();
-    //持续平滑动画 (高频率调用)
-    if (mDragHelper.continueSettling(true)){
-        //  如果返回true, 动画还需要继续执行
-        ViewCompat.postInvalidateOnAnimation(this);
-    }
-}
-```
+* `ViewDragHelper` 中 `smoothSlideViewTo()` 也可以进行平滑移动. 
 
 
-### Scroller 
+### Scroller 辅助类
 #### 1 构造器
 ```java
 //传入Interpolator补间器,可以实现动画的变化率，比如匀速变化 先加速后减速
@@ -217,7 +211,7 @@ View滚动的实现原理，我们先调用Scroller的`startScroll()`方法来�
   
 使用
 
-### VelocityTracker 和 ViewConfiguration
+### VelocityTracker 和 ViewConfiguration 辅助类(可以自定义ScrollView)
 - 获取 `mVelocityTracker = VelocityTracker.obtain();`, `mViewConfiguration = ViewConfiguration.get(context);`
 - `mViewConfiguration.getScaledTouchSlop()` 获得能够进行手势滑动的距离,手的移动要大于这个距离才开始移动控件。如果小于这个距离就不触发移动控件，如viewpager就是用这个距离来判断用户是否翻页
 - `mMaximumVelocity = mViewConfiguration.getScaledMaximumFlingVelocity()`获得允许执行一个fling手势动作的最大速度值
@@ -356,36 +350,6 @@ public boolean onTouchEvent(MotionEvent event) {
  
 
 
-### ListView 的技巧
-##### 分割线 
-```xml 
-android:divider="@android:color/darker_gray"
-android:dividerHeight="10dp"
-```
-##### 滚动条设置
-```xml
-android:scrollbars="none"
-```
-##### item点击效果
-```xml
-<!-- 取消点击效果 -->
-android:listSelector="#00000000"
-<!-- or 使用Android原始的透明颜色 -->
-android:listSelector="@android:color/transparent"
-```
-##### item显示位置
-```java
-listView.setSelection(N);
-//或者平滑的移动
-listView.smoothScrollToPosition(position);
-listView.smoothScrollByOffset(offset);
-listView.smoothScrollBy(distance,duration);
-```
-##### 
-
-
-
-
 ### ViewDragHelper 自定义ViewGroup帮助类
 
 * 创建实例
@@ -520,6 +484,124 @@ MOVE:
         ->onViewCaptured
         ->onViewDragStateChanged
 ```
+* `ViewDragHelper` 中 `smoothSlideViewTo()` 也可以进行平滑移动.因为里面维护了一个Scroller;所以viewgroup需要重写`computeScroll()`方法,并在里面调用ViewDragHelper的`continueSettling(true)`(每次执行都会调用回调的`onViewPositionChanged()方法`),会返回Boolean类型判断是否继续动画,true代码动画为执行完成。
+
+```java
+ // 触发一个平滑动画
+if (mDragHelper.smoothSlideViewTo(mMainContent, finalLeft, finalTop)) {
+    // 返回true代表还没有移动到指定位置, 需要刷新界面.
+    // 参数传this(child所在的ViewGroup)
+    ViewCompat.postInvalidateOnAnimation(this);
+}
+
+ @Override
+public void computeScroll() {
+    super.computeScroll();
+    //持续平滑动画 (高频率调用)
+    if (mDragHelper.continueSettling(true)){
+        //  如果返回true, 动画还需要继续执行
+        ViewCompat.postInvalidateOnAnimation(this);
+    }
+}
+```
 
 ### ViewCompat 
 view更新动画重绘 ViewCompat.postInvalidateOnAnimation(view)
+
+
+
+###  事件
+#### 触控事件 MotionEvent 常用事件
+- `ACTION_DOWN` 单点按下
+- `ACTION_UP` 单点触摸离开
+- `ACTION_MOVE` 触摸点移动动作
+- `ACTION_CANCEL` 触摸动作取消
+- `ACTION_OUTSIDE` 触摸动作超出边界
+- `ACTION_POINTER_DOWN` 多点触摸按下动作
+- `ACTION_POINTER_UP` 多点离开动作
+
+#### 事件机制总结
+[参考1](http://www.cnblogs.com/Jackwen/p/5239035.html)  
+[参考2](http://www.cnblogs.com/sunzn/archive/2013/05/10/3064129.html)  
+
+
+|---------------------------------------|----------|----------|-----------|------|
+|           Touch事件相关方法           |   功能   | Activity | ViewGroup | View |
+|   dispatchTouchEvent(MotionEvent ev)  | 事件分发 |   Yes    |    Yes    | Yes  |
+| onInterceptTouchEvent(MotionEvent ev) | 事件拦截 |    No    |    Yes    |  No  |
+|      onTouchEvent(MotionEvent ev)     | 事件响应 |   Yes    |    Yes    | Yes  |
+|---------------------------------------|----------|----------|-----------|------|
+  
+activity和 最小单位的view(比如TextView) 是没有事件拦截的  
+
+- `dispatchTouchEvent`   
+当Touch事件发生时，Activity的dispatchTouchEvent()方法会以隧道方式从根节点依次往下传递直到最内层子节点，或在中间某一节点中由于某一条件停止传递)将事件传递给最外层View的dispatchTouchEvent()方法，并由该View的dispatchTouchEvent()方法对事件进行分发。
+    - `return true` ：事件会分发给当前View并由dispatchTouchEvent()方法进行消费，同时事件会停止向下传递。
+    - `return false` ：将事件返还给当前View的上一级的onTouchEvent()进行消费。(这个上一级可能是Activity，也可能是父View)
+    - `return super.dispatchTouchEvent(ev)` ：事件会自动的分发给当前View的onInterceptTouchEvent方法。
+    - 注意，View响应dispatchTouchEvent()和onInterceptTouchEvent()的前提是可以向该View中添加子View，也就是说该View有子节点才谈得上能分发和拦截。
+
+- `onInterceptTouchEvent`  只有viewgrop才会有
+在外层View的dispatchTouchEvent()方法返回super.dispatchTouchEvent(ev)时，事件会自动的分发给当前View的onInterceptTouchEvent()方法。
+    - `return true` ：将对事件进行拦截，并将拦截到的事件交由当前View的onTouchEvent()进行处理。
+    - `return false` ：将对事件进行放行，当前View上的事件会被传递到子View 上，再由子View的dispatchTouchEvent()来继续对这个事件进行分发。
+    - ` return super.onInterceptTouchEvent(ev)` ：默认不拦截返回false
+
+- `onTouchEvent`
+    - `return false` ：事件将会从当前View向上传递，并且都是由上层View的onTouchEvent()来接收，如果传递到上层的onTouchEvent()也返回false，那么这                       个事件就会"消失"，而且接收不到下一次事件。
+    - `return true` ：接收并消费掉该事件。
+    - `return super.onTouchEvent(ev) `：默认处理事件的逻辑和return false相同,但是CLICKABLE的view默认是消耗的  
+
+#### Activity对Touch事件的处理
+当Touch事件发生生，最先被触发的是Activity的dispatchTouchEvent()函数，再由这个函数触发根节点的dispatchTouchEvent()。如果想让Activity不响应触摸事件，可以直接重写这个函数
+
+#### view对Touch事件的处理
+- `dispatchTouchEvent` 会先判断view时候有`OnTouchListener`,如果有就先执行`onTouch`函数,当`onTouch`返回false才会继续执行view的`onTouchEvent`
+- `onTouchEvent` onLongClick是 ACTION_DOWN 进行处理(根据时间长短来判断是否时长按,默认500毫秒)   
+- 在`MotionEvent.ACTION_UP`时执行才会onClick
+- OnLongClickListener返回true消耗事件并拦截OnClickListener事件
+- 如果一个控件是可点击的，那么点击该控件时，onTouchEvent的返回值必定是true
+
+#### ViewGroup对Touch事件的处理
+- `onInterceptTouchEvent`
+    - 实现这个方法来拦截所有触摸屏移动事件。这可以让你在事件被分配给孩子的时候看到事件，并在任意时刻获取当前手势的所有权。
+    - 使用这个功能需要特别注意，因为它与View.onTouchEvent有着相当复杂的相互作用，并且使用它还需要以正确的方式实现这个方法。
+    - 顺序:
+    - (1) ViewGroup会在这里接收到DOWN事件，这个DOWN事件会被这个ViewGroup的一个子View处理掉，或者给这个ViewGroup自己的onTouchEvent函数进行处理。那就意味着ViewGroup应该实现onTouchEvent()函数并且返回true, 这样你就会继续看到手势的后续事件(而不是寻找父View来处理)。
+    - (2) 通过从ViewGroup自己的onTouchEvent()返回true, ViewGroup的onInterceptTouchEvent()中将不会再收到任何后续事件，即后续事件不用再经过onInterceptTouchEvent()了，所有触摸的处理都像正常情况一样发生在onTouchEvent里了。
+    - (3) 只要ViewGroup从这个函数返回false，接下来的每个事件(包括最后的UP)都会首先传递到这里，然后再传递给目标View的onTouchEvent()。
+    - (4) 如果ViewGroup从这个函数返回true，说明从子view拦截了事件，并将它们通过onTouchEvent()传递给这个ViewGroup。当前目标View将接收到相同事件，但是Action为ACTION_CANCEL，并且没有进一步消息在这里传递。
+- `dispatchTouchEvent` 进行事件分发
+- `getParent().requestDisallowInterceptTouchEvent(true)` 可以请求父布局不拦截自己的onTouchEvent事件
+- 
+
+
+
+
+
+### ListView 的技巧
+##### 分割线 
+```xml 
+android:divider="@android:color/darker_gray"
+android:dividerHeight="10dp"
+```
+##### 滚动条设置
+```xml
+android:scrollbars="none"
+```
+##### item点击效果
+```xml
+<!-- 取消点击效果 -->
+android:listSelector="#00000000"
+<!-- or 使用Android原始的透明颜色 -->
+android:listSelector="@android:color/transparent"
+```
+##### item显示位置
+```java
+listView.setSelection(N);
+//或者平滑的移动
+listView.smoothScrollToPosition(position);
+listView.smoothScrollByOffset(offset);
+listView.smoothScrollBy(distance,duration);
+```
+ 
