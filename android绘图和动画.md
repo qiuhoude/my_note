@@ -215,10 +215,222 @@ bmp.setPixels(newPx, 0, width, 0, 0, width, height);
 
 - pre()和post()提供矩阵的前乘和后乘,来构成混合效果(matrix不满足交换律)
 
-### ProterDuffXfermode
-
-### Shader 着色器
-#### BitmapShader 位图shader
+### ProterDuffXfermode (要关闭硬件加速,因为有些模式不支持)
 - 先绘制的为Des 后绘制的为Src
 
+```java
+//关闭硬件加速
+setLayerType(LAYER_TYPE_SOFTWARE, null);
+mBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.test1);
+mOut = Bitmap.createBitmap(mBitmap.getWidth(),
+        mBitmap.getHeight(),
+        Bitmap.Config.ARGB_8888);
+Canvas canvas = new Canvas(mOut);
+mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+// Dst
+canvas.drawRoundRect(0, 0, mBitmap.getWidth(), mBitmap.getHeight(),
+        50, 50, mPaint);
+mPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+// Src
+canvas.drawBitmap(mBitmap, 0, 0, mPaint);
+mPaint.setXfermode(null);//置空xfermode
+```
+
+### Shader 着色器
+- LinearGradient 线性
+- RadialGradient 光束
+- SweepGradient 梯度
+- ComposeShader 混合
+- CLAMP 拉伸效果,只拉伸最后一个像素
+- REPEAT 不断重复效果
+- MIRROR 镜像
+
+#### BitmapShader 位图shader
+
+```java
+mPaint = new Paint();
+mBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.test);
+mBitmapShader = new BitmapShader(mBitmap,
+        Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+mPaint.setShader(mBitmapShader);
+canvas.drawCircle(300, 200, 200, mPaint);
+```
+
+### SurfaceView
+模板代码
+
+```java
+public class SurfaceViewTemplate extends SurfaceView
+        implements SurfaceHolder.Callback, Runnable {
+    public SurfaceViewTemplate(Context context) {
+        super(context);
+        init();
+    }
+    public SurfaceViewTemplate(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        init();
+    }
+    public SurfaceViewTemplate(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        init();
+    }
+    private void init() {
+        mHolder = getHolder();
+        mHolder.addCallback(this);
+        setFocusable(true);
+        setFocusableInTouchMode(true);
+        setKeepScreenOn(true);
+//        mHolder.setFormat(PixelFormat.OPAQUE);
+    }
+    private SurfaceHolder mHolder;
+    //用于绘制的canvas
+    private Canvas mCanvas;
+    //子线程标志位
+    private boolean mIsDrawing;
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        mIsDrawing = true;
+        new Thread(this).start();
+    }
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+    }
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        mIsDrawing = false;
+    }
+    @Override
+    public void run() {
+        //在子线程进行绘制
+        while (mIsDrawing) {
+            //不断的循环绘制
+            draw();
+        }
+    }
+    private void draw() {
+        try {
+            //通过lockCanvas获取当前canvas绘制对象
+            //每次获取的canvas对象还是上一次的canvas对象,而不是一个新的对象
+            //之前绘图的所有操作将会保留,如果要擦除,可以在绘制前调用drawColor()方法清屏
+            mCanvas = mHolder.lockCanvas();
+            //绘制背景(清屏)
+            mCanvas.drawColor(Color.WHITE);
+            //TODO draw something
+        } catch (Exception e) {
+
+        } finally {
+            if (mCanvas != null) {
+                //对绘制内容进行提交
+                mHolder.unlockCanvasAndPost(mCanvas);
+            }
+        }
+    }
+}
+```
+
+
 ## 动画机制
+### 视图动画(补间动画) 4种
+
+### 属性动画
+
+####  ObjectAnimator 
+
+```java
+ObjectAnimator animator1 = ObjectAnimator.ofFloat(view, "translationX", 300f);
+ObjectAnimator animator2 = ObjectAnimator.ofFloat(view, "scaleX", 1f, 0f, 1f);
+ObjectAnimator animator3 = ObjectAnimator.ofFloat(view, "scaleY", 1f, 0f, 1f);
+AnimatorSet set = new AnimatorSet();
+	set.setDuration(1000);
+	set.playTogether(animator1, animator2, animator3);//同时调用
+	set.start();
+```
+
+#### 如果有的属性没有get set怎么办？使用ValueAnimator
+
+```java
+ValueAnimator animator = ValueAnimator.ofFloat(0, 100);
+animator.setTarget(view);
+animator.setDuration(2000).start();
+animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+    @Override
+    public void onAnimationUpdate(ValueAnimator animation) {
+        Float value = (Float) animation.getAnimatedValue();
+    }
+});
+```
+
+#### PropertyValuesHolder 一个对象的多个属性,同时作用多种动画
+```java
+ PropertyValuesHolder propertyValuesHolder1 = PropertyValuesHolder.ofFloat("translationX", 300f);
+PropertyValuesHolder propertyValuesHolder2 = PropertyValuesHolder.ofFloat("scaleX", 1f,0,1f);
+PropertyValuesHolder propertyValuesHolder3 = PropertyValuesHolder.ofFloat("scaleY", 1f,0,1f);
+ObjectAnimator.ofPropertyValuesHolder(view, propertyValuesHolder1, propertyValuesHolder2, propertyValuesHolder3)
+        .setDuration(3000)
+        .start();
+```
+
+#### 动画的监听
+
+```java
+ //适配器类AnimatorListenerAdapter
+ animator.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+
+            }
+        });
+
+ ```
+
+### View的animate方法
+3.0之后可以使用
+
+### 布局动画
+- `android:animateLayoutChanges="true"` 在viewgroup中加上,打开布局动画(只是默认的过渡效果) 
+- 通过LayoutAnimationController自定义过渡效果
+
+
+```java
+ScaleAnimation sa = new ScaleAnimation(0, 2, 0, 2);
+sa.setDuration(1000);  
+//arg1 : 需要的动画 ,arg2 : 每个子view的delay时间
+LayoutAnimationController lac = new LayoutAnimationController(sa,0.5f);
+//LayoutAnimationController.ORDER_NORMAL 顺序
+//LayoutAnimationController.ORDER_RANDOM 随机
+//LayoutAnimationController.ORDER_REVERSE 反序
+lac.setOrder(LayoutAnimationController.ORDER_NORMAL);
+ll.setLayoutAnimation(lac);
+```
+
+### 自定义动画
+- 继承 Animation
+- 覆盖applyTransformation()
+- initialize() 进行一些初始化操作
+
+```java
+@Override
+protected void applyTransformation(float interpolatedTime, Transformation t) {
+	//arg1 插值器的时间因子,取值范围 0.0~1.0
+	//agr2 矩阵的封装类,通过矩阵来操作
+	
+}
+```
+### 5.0之后的activity过渡动画

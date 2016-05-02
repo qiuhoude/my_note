@@ -33,14 +33,14 @@
     - [Activity的生命周期](#activity的生命周期)
     - [Activity 的启动模式和标记](#activity-的启动模式和标记)
     - [activity返回值](#activity返回值)
-- [播接受者(broadcast receiver)](#播接受者broadcast-receiver)
+- [播接受者\(broadcast receiver\)](#播接受者broadcast-receiver)
 - [service](#service)
     - [进程优先级](#进程优先级)
     - [开启服务](#开启服务)
 - [ContentProvider](#contentprovider)
 - [ragment](#ragment)
 - [动画](#动画)
-- [.9.png(9-Patch)](#9png9-patch)
+- [.9.png\(9-Patch\)](#9png9-patch)
 
 <!-- /MarkdownTOC -->
 
@@ -741,9 +741,9 @@ String femaleName = intent.getStringExtra("femaleName");
 在activity节点的加上launchMode=singletop属性
 - standard 标准启动模式
 
-- singletop 判断栈顶activity和要开启activity是否相同，如果相同就不开启新的，即使栈中已经存在该Activity的实例，只要不在栈顶，都会创建新的实例。 作用：避免同一个页面重复开启（浏览器添加书签运用到了）
+- singletop 判断栈顶activity和要开启activity是否相同，如果相同就不开启新的，即使栈中已经存在该Activity的实例，只要不在栈顶，都会创建新的实例。(会调用onNewIntent方法) 作用：避免同一个页面重复开启（浏览器添加书签运用到了）
 
-- singleTask 开启一个activity B的时候检查任务在里面是否有存在的activity B实例存在，如果存在就清空这个任务在activity B上面所有的activity(运用场景浏览器)
+- singleTask 开启一个activity B的时候检查任务在里面是否有存在的activity B实例存在，如果存在就清空这个任务在activity B上面所有的activity(运用场景浏览器),会调用B的onNewIntent()方法
 
 - singleInstance启动模式非常特殊， activity会运行在自己的任务栈里面，并且这个任务栈里面只有一个实例存在，如果你要保证一个activity在整个手机操作系统里面只有一个实例存在，使用singleInstance（应用场景： 电话拨打界面）;(会有前台任务栈和后台任务栈的切换)
 
