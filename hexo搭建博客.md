@@ -254,12 +254,42 @@ hexo new page "about"
 > 因为markdown对table的支持不好，我是在about中直接建立index.html，里面书写页面内容，hexo会帮你加上头和尾。
 
 ### 404页面
+[Gihub 404教程](https://help.github.com/articles/custom-404-pages/)直接在根目录下创建自己的__404.html__就可以。但是自定义404页面仅对绑定顶级域名的项目才起作用，GitHub默认分配的二级域名是不起作用的，使用hexo server在本机调试也是不起作用的  
+公益404:  
+[腾讯公益404](http://www.qq.com/404)  
+[404公益_益云(公益互联网)社会创新中心](http://yibo.iyiyun.com/Index/web404)  
+[失蹤兒童少年資料管理中心404](http://404page.missingkids.org.tw/)
+
+### 图床
+考虑到博客的速度，同时也为了便于博客的迁移，图床是必须的。七牛，访问速度极快，支持日志、防盗链和水印。免费用户有每月10GB流量+总空间10GB+PUT/DELETE 10万次请求+GET 100万次请求七牛没有目录的概念，但是文件名可以包含/，比如2013/11/27/reading/photos-0.jpg  
+不足:不支持CNAME到分配的永久链接，也不能绑定未备案的自有域名，必须备案才可以。
 
 
-### 连接
+### 申请域名
+[GoDaddy(狗爹)](http://www.godaddy.com/)
+[DNSPod](https://support.dnspod.cn/Kb/showarticle/tsid/42)
+
+### 目录结构
+
+```sh
+.
+├── .deploy
+├── public
+├── scaffolds
+├── scripts
+├── source
+|   ├── _drafts
+|   └── _posts
+├── themes
+├── _config.yml
+└── package.json
+```
+
+### 参考
 [Hexo中文网站](https://hexo.io/zh-cn/docs/)  
 [Github Pages](https://pages.github.com/)  
 [Hexo主题列表](https://github.com/hexojs/hexo/wiki/Themes)  
-[多说](http://duoshuo.com/)
-
+[多说](http://duoshuo.com/)  
+[教程](http://ibruce.info/2013/11/22/hexo-your-blog/)  
+<http://ibruce.info/2013/11/22/hexo-your-blog/>  
  
